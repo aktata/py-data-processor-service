@@ -1,0 +1,9 @@
+{
+  "project": "data-processor",
+  "version": 1,
+  "features": ["csv", "json", "image"],
+  "metadata": {
+    "owner": "team-data",
+    "active": true
+  }
+}
