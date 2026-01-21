@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py-data-processor-service"
-version = "0.1.0"
-description = "Production-grade data processing service for CSV, JSON, and image inputs."
+version = "1.0.0"
+description = "Batch financial data processing and risk analysis system."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [{ name = "OpenAI Codex" }]
-keywords = ["fastapi", "data", "processing", "csv", "json", "image"]
+keywords = ["finance", "risk", "excel", "report", "pptx"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
@@ -24,9 +24,11 @@ dependencies = [
   "pydantic>=2.6.0",
   "pydantic-settings>=2.2.0",
   "python-dotenv>=1.0.1",
-  "python-multipart>=0.0.9",
-  "pillow>=10.2.0",
-  "chardet>=5.2.0",
+  "pandas>=2.2.0",
+  "openpyxl>=3.1.2",
+  "numpy>=1.26.0",
+  "matplotlib>=3.8.0",
+  "python-pptx>=0.6.23",
 ]
 
 [project.optional-dependencies]
@@ -43,6 +45,8 @@ include = ["app*"]
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = ["E501"]
 
