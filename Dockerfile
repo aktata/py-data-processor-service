@@ -6,11 +6,16 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends \
+        curl \
+        libfreetype6 \
+        libpng16-16 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml README.md LICENSE /app/
 COPY app /app/app
+COPY scripts /app/scripts
+COPY data /app/data
 
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -e .

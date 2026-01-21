@@ -4,33 +4,24 @@ set -euo pipefail
 PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$PROJECT_ROOT"
 
-IMAGE_NAME="data-processor-verify"
-CONTAINER_NAME="data-processor-verify-container"
+IMAGE_NAME="financial-risk-service:verify"
 
 sudo docker build -t "$IMAGE_NAME" .
 
-sudo docker run -d --rm --name "$CONTAINER_NAME" -p 8000:8000 --env-file .env.example "$IMAGE_NAME"
+sudo docker run --rm \
+  -v "$PROJECT_ROOT/data:/app/data" \
+  "$IMAGE_NAME" \
+  /bin/bash -c "python scripts/generate_demo_data.py \
+  && python -m app.cli ingest --input-dir data/input --db-path data/output/finance.db --reset --json \
+  && python -m app.cli calc --db-path data/output/finance.db --json \
+  && python -m app.cli export_excel --db-path data/output/finance.db --year 2023 --output-path data/output/report.xlsx --json \
+  && python -m app.cli export_ppt --db-path data/output/finance.db --year 2023 --output-path data/output/report.pptx --json"
 
-cleanup() {
-  sudo docker stop "$CONTAINER_NAME" >/dev/null 2>&1 || true
-}
-trap cleanup EXIT
+sudo docker image rm "$IMAGE_NAME"
 
-sleep 3
-
-curl -s http://127.0.0.1:8000/health | python - <<'PY'
-import json,sys
-payload=json.load(sys.stdin)
-assert payload["code"]==0
-print("/health ok")
+python - <<'PY'
+from pathlib import Path
+assert Path("data/output/report.xlsx").exists()
+assert Path("data/output/report.pptx").exists()
+print("✅ docker verify ok")
 PY
-
-curl -s -H "Content-Type: application/json" -d '{"hello":"world","items":[1]}' \
-  http://127.0.0.1:8000/process | python - <<'PY'
-import json,sys
-payload=json.load(sys.stdin)
-assert payload["code"]==0
-assert payload["data"]["input_type"]=="json"
-print("/process ok")
-PY
-

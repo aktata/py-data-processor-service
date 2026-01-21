@@ -12,33 +12,32 @@ source "$VENV_DIR/bin/activate"
 pip install --upgrade pip
 pip install -e ".[dev]"
 
-./scripts/lint.sh
-./scripts/test.sh
+ruff check .
+pytest
 
-uvicorn app.main:app --host 127.0.0.1 --port 8000 &
-SERVER_PID=$!
+python scripts/generate_demo_data.py
 
-cleanup() {
-  kill "$SERVER_PID" 2>/dev/null || true
-}
-trap cleanup EXIT
+python -m app.cli ingest --input-dir data/input --db-path data/output/finance.db --reset --json
+python -m app.cli calc --db-path data/output/finance.db --json
+python -m app.cli rank --db-path data/output/finance.db --indicator net_profit_margin --year 2023 --n 3 --json
+python -m app.cli export_excel --db-path data/output/finance.db --year 2023 --output-path data/output/report.xlsx --json
+python -m app.cli export_ppt --db-path data/output/finance.db --year 2023 --output-path data/output/report.pptx --json
 
-sleep 2
+python - <<'PY'
+from pathlib import Path
+from pptx import Presentation
+from openpyxl import load_workbook
 
-curl -s http://127.0.0.1:8000/health | python - <<'PY'
-import json,sys
-payload=json.load(sys.stdin)
-assert payload["code"]==0
-assert payload["data"]["status"]=="ok"
-print("/health ok")
+excel_path = Path("data/output/report.xlsx")
+ppt_path = Path("data/output/report.pptx")
+assert excel_path.exists(), "Excel report missing"
+assert ppt_path.exists(), "PPT report missing"
+
+workbook = load_workbook(excel_path)
+assert "指标表" in workbook.sheetnames
+assert "排名表" in workbook.sheetnames
+
+presentation = Presentation(ppt_path)
+assert len(presentation.slides) >= 6
+print("✅ verify pipeline ok")
 PY
-
-curl -s -H "Content-Type: application/json" -d '{"hello":"world","items":[1,2,3]}' \
-  http://127.0.0.1:8000/process | python - <<'PY'
-import json,sys
-payload=json.load(sys.stdin)
-assert payload["code"]==0
-assert payload["data"]["input_type"]=="json"
-print("/process json ok")
-PY
-
