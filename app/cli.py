@@ -9,7 +9,6 @@ from typing import Any
 
 import pandas as pd
 
-from app.analytics.drilldown import drilldown_facts
 from app.analytics.indicators import calculate_indicators
 from app.analytics.ranking import top_n_companies
 from app.analytics.scoring import apply_scoring, calculate_overall_risk
@@ -19,9 +18,6 @@ from app.core.logging import generate_trace_id, set_trace_id
 from app.core.response import build_error_data, build_response_data
 from app.ingest.excel_reader import read_company_excel
 from app.ingest.normalizer import normalize_statement
-from app.reporting.excel_report import export_excel_report
-from app.reporting.ppt_report import export_ppt_report
-from app.reporting.template_generator import ensure_template
 from app.storage.repository import (
     fetch_facts,
     fetch_metrics_df,
@@ -121,61 +117,38 @@ def rank_command(db_path: str, indicator: str, year: int, n: int, order: str) ->
     return {"items": ranking_df.to_dict(orient="records")}
 
 
-def drilldown_command(
+def export_command(
     db_path: str,
-    company: str,
-    year: int,
-    statement_type: str,
-    subject_prefix: str,
-) -> dict[str, Any]:
-    facts_records = fetch_facts(db_path)
-    facts_df = pd.DataFrame(facts_records)
-    result = drilldown_facts(facts_df, company, year, statement_type, subject_prefix)
-    return {"items": result.to_dict(orient="records")}
-
-
-def export_excel_command(
-    db_path: str,
-    output_path: str,
     indicator: str,
     year: int,
     n: int,
-    company: str | None,
-    statement_type: str | None,
-    subject_prefix: str | None,
+    order: str,
+    output_dir: str,
 ) -> dict[str, Any]:
     metrics_df = fetch_metrics_df(db_path)
-    ranking_df = top_n_companies(metrics_df, indicator, year, n=n)
-    drilldown_df = None
-    if company and statement_type and subject_prefix:
-        facts_df = pd.DataFrame(fetch_facts(db_path))
-        drilldown_df = drilldown_facts(facts_df, company, year, statement_type, subject_prefix)
-    output_file = export_excel_report(metrics_df, ranking_df, drilldown_df, Path(output_path))
-    return {"path": str(output_file)}
-
-
-def export_ppt_command(
-    db_path: str,
-    output_path: str,
-    assets_dir: str,
-    template_path: str,
-    indicator: str,
-    year: int,
-    n: int,
-) -> dict[str, Any]:
-    metrics_df = fetch_metrics_df(db_path)
+    if metrics_df.empty:
+        raise AppError(
+            code=ErrorCode.VALIDATION_ERROR,
+            message="No metrics found. Run calc first.",
+            status_code=400,
+        )
+    ranking_df = top_n_companies(metrics_df, indicator, year, n=n, order=order)
     overall_df = fetch_overall_df(db_path)
-    ranking_df = top_n_companies(metrics_df, indicator, year, n=n)
-    template_file = ensure_template(Path(template_path))
-    output_file = export_ppt_report(
-        metrics_df,
-        overall_df,
-        Path(output_path),
-        Path(assets_dir),
-        template_file,
-        ranking_df,
-    )
-    return {"path": str(output_file)}
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    metrics_file = output_path / "metrics.csv"
+    ranking_file = output_path / "ranking.csv"
+    overall_file = output_path / "overall_risk.csv"
+
+    metrics_df.to_csv(metrics_file, index=False)
+    ranking_df.to_csv(ranking_file, index=False)
+    overall_df.to_csv(overall_file, index=False)
+    return {
+        "metrics_path": str(metrics_file),
+        "ranking_path": str(ranking_file),
+        "overall_path": str(overall_file),
+    }
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -206,33 +179,13 @@ def build_parser() -> argparse.ArgumentParser:
     rank_parser.add_argument("--n", type=int, default=5)
     rank_parser.add_argument("--order", default="desc", choices=["desc", "asc"])
 
-    drill_parser = subparsers.add_parser("drilldown", help="Drilldown facts")
-    drill_parser.add_argument("--db-path", default=settings.db_path)
-    drill_parser.add_argument("--company", required=True)
-    drill_parser.add_argument("--year", type=int, required=True)
-    drill_parser.add_argument("--statement-type", required=True)
-    drill_parser.add_argument("--subject-prefix", required=True)
-
-    excel_parser = subparsers.add_parser("export_excel", help="Export Excel report")
-    excel_parser.add_argument("--db-path", default=settings.db_path)
-    excel_parser.add_argument("--output-path", default=f"{settings.output_dir}/report.xlsx")
-    excel_parser.add_argument("--indicator", default="net_profit_margin")
-    excel_parser.add_argument("--year", type=int, required=True)
-    excel_parser.add_argument("--n", type=int, default=5)
-    excel_parser.add_argument("--company")
-    excel_parser.add_argument("--statement-type")
-    excel_parser.add_argument("--subject-prefix")
-
-    ppt_parser = subparsers.add_parser("export_ppt", help="Export PPT report")
-    ppt_parser.add_argument("--db-path", default=settings.db_path)
-    ppt_parser.add_argument("--output-path", default=f"{settings.output_dir}/report.pptx")
-    ppt_parser.add_argument("--assets-dir", default=f"{settings.output_dir}/assets")
-    ppt_parser.add_argument(
-        "--template-path", default="app/reporting/templates/report_template.pptx"
-    )
-    ppt_parser.add_argument("--indicator", default="net_profit_margin")
-    ppt_parser.add_argument("--year", type=int, required=True)
-    ppt_parser.add_argument("--n", type=int, default=5)
+    export_parser = subparsers.add_parser("export", help="Export CSV summaries")
+    export_parser.add_argument("--db-path", default=settings.db_path)
+    export_parser.add_argument("--output-dir", default=settings.output_dir)
+    export_parser.add_argument("--indicator", default="net_profit_margin")
+    export_parser.add_argument("--year", type=int, required=True)
+    export_parser.add_argument("--n", type=int, default=5)
+    export_parser.add_argument("--order", default="desc", choices=["desc", "asc"])
 
     return parser
 
@@ -280,42 +233,16 @@ def main() -> int:
             order=args.order,
         )
 
-    if args.command == "drilldown":
+    if args.command == "export":
         return _handle_command(
-            drilldown_command,
+            export_command,
             json_output,
             db_path=args.db_path,
-            company=args.company,
-            year=args.year,
-            statement_type=args.statement_type,
-            subject_prefix=args.subject_prefix,
-        )
-
-    if args.command == "export_excel":
-        return _handle_command(
-            export_excel_command,
-            json_output,
-            db_path=args.db_path,
-            output_path=args.output_path,
+            output_dir=args.output_dir,
             indicator=args.indicator,
             year=args.year,
             n=args.n,
-            company=args.company,
-            statement_type=args.statement_type,
-            subject_prefix=args.subject_prefix,
-        )
-
-    if args.command == "export_ppt":
-        return _handle_command(
-            export_ppt_command,
-            json_output,
-            db_path=args.db_path,
-            output_path=args.output_path,
-            assets_dir=args.assets_dir,
-            template_path=args.template_path,
-            indicator=args.indicator,
-            year=args.year,
-            n=args.n,
+            order=args.order,
         )
 
     return 0

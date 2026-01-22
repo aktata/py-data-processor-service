@@ -3,4 +3,4 @@ set -euo pipefail
 
 export $(grep -v '^#' .env 2>/dev/null | xargs -r)
 
-uvicorn app.main:app --host "${HOST:-0.0.0.0}" --port "${PORT:-8000}"
+python -m app.cli --help
