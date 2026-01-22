@@ -1,0 +1,128 @@
+name: "🐞 Bug 报告"
+description: "报告一个可复现的问题（CLI / FastAPI / 报告导出 / 解析等）"
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！这个项目常见入口包括 CLI（ingest/calc/rank/export_excel/export_ppt）与 FastAPI（/query /rank /drilldown）。请尽量填全，能大幅降低排查时间。
+
+  - type: dropdown
+    id: entrypoint
+    attributes:
+      label: "你是在哪个入口遇到问题？"
+      options:
+        - "CLI: ingest（Excel 入库）"
+        - "CLI: calc（指标/风险评分）"
+        - "CLI: query（查询单指标）"
+        - "CLI: rank（排名）"
+        - "CLI: drilldown（下钻）"
+        - "CLI: export_excel（导出 Excel）"
+        - "CLI: export_ppt（导出 PPT）"
+        - "API: /query"
+        - "API: /rank"
+        - "API: /drilldown"
+        - "其他"
+    validations:
+      required: true
+
+  - type: textarea
+    id: command_or_request
+    attributes:
+      label: "你运行的命令 / 请求"
+      description: "粘贴你执行的 CLI 命令或 curl 请求。"
+      placeholder: |
+        CLI 示例：
+        python -m app.cli ingest --input-dir data/input --db-path data/output/finance.db --reset --json
+
+        API 示例：
+        curl -s -X POST http://127.0.0.1:8000/query \
+          -H "Content-Type: application/json" \
+          -d '{"company":"星河科技","year":2023,"indicator":"net_profit_margin"}'
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: "发生了什么？"
+      description: "描述现象（包含错误码/trace_id/报错栈更好）。"
+      placeholder: |
+        现象：
+        实际输出：
+        错误码（如 parse_error / missing_required_subject 等）：
+        trace_id：
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "你期望发生什么？"
+      placeholder: "例如：应正常入库并返回 success；或 export_ppt 生成每公司至少 2 页的 PPT。"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: "最小复现步骤"
+      description: "按步骤写（最好从空环境开始），以及你使用的数据特征。"
+      placeholder: |
+        1) git clone ...
+        2) pip install -e .[dev]
+        3) 使用 xxx 输入文件（结构：每公司一个 Excel，3 个 sheet...）
+        4) 执行命令 ...
+        5) 得到错误 ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: "运行方式"
+      options:
+        - "本地 venv"
+        - "Docker"
+        - "docker-compose"
+        - "CI / 其他"
+    validations:
+      required: true
+
+  - type: textarea
+    id: env
+    attributes:
+      label: "环境信息"
+      description: "建议粘贴：OS、Python 版本、关键依赖版本（pandas/openpyxl/matplotlib/python-pptx）、以及是否使用 WSL。"
+      placeholder: |
+        OS:
+        Python: 3.10.x
+        pandas:
+        openpyxl:
+        matplotlib:
+        python-pptx:
+    validations:
+      required: true
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: "相关输入/产物（可选但强烈建议）"
+      description: "可上传脱敏后的 Excel 样例、或截图（例如 sheet 名称/表头/科目列格式）。敏感数据请脱敏。"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "提交前确认"
+      options:
+        - label: "我已搜索过现有 issue，确认不是重复问题"
+          required: true
+        - label: "我已对输入数据做脱敏/打码（如涉及财务数据）"
+          required: true
+        - label: "我可以提供最小复现样例（或截图/片段）"
+          required: false

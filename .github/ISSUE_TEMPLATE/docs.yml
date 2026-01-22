@@ -1,0 +1,28 @@
+name: "📚 文档问题"
+description: "README/FAQ/注释/示例命令有误或不清晰"
+title: "[Docs] "
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: "问题位置"
+      placeholder: "例如：README - API 使用说明 - /query 示例"
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: "具体问题"
+      placeholder: "哪里不清晰/哪里写错/运行不通？"
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: "建议修改稿（可选）"
+      placeholder: "你期望的文字/示例命令是什么？"
+    validations:
+      required: false

@@ -1,0 +1,84 @@
+name: "📄 Excel 模板 / 解析问题"
+description: "入库阶段解析失败（parse_error / sheet 名不匹配 / 科目层级识别失败 / 缺必需科目等）"
+title: "[Data] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        这个项目的 ingest 对输入 Excel 有明确约定：每家公司一个 Excel，包含 3 个 sheet（资产负债表/利润表/现金流量表，或对应英文名），科目层级支持 缩进/分隔符/多列 三种形式；推荐多列形式最稳定。请把你这份 Excel 的“结构”描述清楚就能定位一半问题。
+
+  - type: input
+    id: company_count
+    attributes:
+      label: "输入文件数量（公司数）"
+      placeholder: "例如：3"
+    validations:
+      required: true
+
+  - type: textarea
+    id: sheets
+    attributes:
+      label: "三个 sheet 的实际名称"
+      placeholder: |
+        资产负债表：
+        利润表：
+        现金流量表：
+    validations:
+      required: true
+
+  - type: dropdown
+    id: hierarchy_form
+    attributes:
+      label: "科目层级形式"
+      options:
+        - "形式 A：科目列靠空格缩进"
+        - "形式 B：用分隔符（如 资产-流动资产-货币资金 或 资产/流动资产/货币资金）"
+        - "形式 C：多列科目（subject_l1/subject_l2/subject_l3 或 一级科目/二级科目/三级科目）"
+        - "不确定"
+    validations:
+      required: true
+
+  - type: textarea
+    id: header_and_columns
+    attributes:
+      label: "表头与关键列（截图/文本都行）"
+      description: "至少提供：科目列/金额列/年份列的列名，以及前 5 行示例（脱敏）。"
+      placeholder: |
+        列名示例：
+        - subject_l1, subject_l2, subject_l3, 2022, 2023
+        前 5 行示例（脱敏）：
+        1) ...
+        2) ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: "报错信息 / 错误码 / trace_id"
+      placeholder: |
+        错误码（如 parse_error / missing_required_subject）：
+        trace_id：
+        堆栈/日志：
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: expectations
+    attributes:
+      label: "你期望系统如何识别？"
+      placeholder: "例如：希望把“资产/流动资产/货币资金”识别成 subject_path=资产>流动资产>货币资金，并正常入库。"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: attach
+    attributes:
+      label: "附件（强烈建议）"
+      options:
+        - label: "我可以上传脱敏后的最小 Excel 样例（1 公司 3 sheet，保留结构）"
+          required: false
+        - label: "我至少能提供 sheet 截图 + 前 20 行示例（脱敏）"
+          required: false

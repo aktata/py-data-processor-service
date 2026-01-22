@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "📖 README / 快速开始 / FAQ"
+    url: "https://github.com/aktata/py-data-processor-service"
+    about: "先看 5 分钟快速开始、数据模板要求与 FAQ，很多问题能秒解。"
+  - name: "💬 Discussions（建议启用）"
+    url: "https://github.com/aktata/py-data-processor-service/discussions"
+    about: "偏讨论/方案对齐/不确定是 bug 的问题更适合放这里。"
+  - name: "🛡️ Security"
+    url: "https://github.com/aktata/py-data-processor-service/security"
+    about: "安全相关问题请走 Security（不要公开贴敏感细节）。"

@@ -1,0 +1,20 @@
+name: "❓ 使用问题"
+description: "不确定是 bug 还是用法问题时，用这个"
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: textarea
+    id: q
+    attributes:
+      label: "你的问题"
+      placeholder: "例如：如何新增一个指标？如何调整 risk rules？"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "你已尝试过什么？"
+      placeholder: "贴命令、贴日志、贴你理解的流程。"
+    validations:
+      required: false
