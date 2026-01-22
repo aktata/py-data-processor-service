@@ -1,6 +1,6 @@
 # 批量财务数据处理与风险分析系统（Python）
 
-> **定位**：面向多公司、多年份财务 Excel 的批量入库、指标计算、风险评分与报告自动生成系统。支持 CLI 一键流水线、可选 FastAPI 查询接口，并提供 Excel/PPT 报告输出与可配置风险规则。
+> **定位**：面向多公司、多年份财务 Excel 的批量入库、指标计算、风险评分与排名输出系统。提供 CLI 一键流水线与 CSV 导出，聚焦轻量化本地处理。
 
 ## 目录
 - [项目背景/适用场景](#项目背景适用场景)
@@ -11,8 +11,6 @@
 - [统一数据 Schema](#统一数据-schema)
 - [指标口径与风险规则](#指标口径与风险规则)
 - [CLI 命令说明](#cli-命令说明)
-- [API 使用说明](#api-使用说明)
-- [报告说明（Excel/PPT）](#报告说明excelppt)
 - [自检与验收](#自检与验收)
 - [FAQ / 排错（>=12）](#faq--排错12)
 - [开发扩展指南](#开发扩展指南)
@@ -29,8 +27,8 @@
 - **批量 Excel 入库**（资产负债表/利润表/现金流量表）
 - **科目层级自动识别**（缩进/分隔符/多列）
 - **指标计算与风险评分**（净利润率、流动比率、ROE）
-- **报告自动化输出**（Excel 标色 + PPT 图表）
-- **统一错误码与输出结构**（CLI/API 一致）
+- **排名与 CSV 输出**（metrics/ranking/overall）
+- **统一错误码与输出结构**（CLI）
 
 适合场景：
 - 财务共享中心的批量监控
@@ -58,9 +56,8 @@ python -m app.cli calc --db-path data/output/finance.db --json
 # 5) 排名
 python -m app.cli rank --db-path data/output/finance.db --indicator net_profit_margin --year 2023 --n 3 --json
 
-# 6) 输出报告
-python -m app.cli export_excel --db-path data/output/finance.db --year 2023 --output-path data/output/report.xlsx --json
-python -m app.cli export_ppt --db-path data/output/finance.db --year 2023 --output-path data/output/report.pptx --json
+# 6) 导出 CSV
+python -m app.cli export --db-path data/output/finance.db --year 2023 --output-dir data/output --json
 ```
 
 ---
@@ -68,25 +65,19 @@ python -m app.cli export_ppt --db-path data/output/finance.db --year 2023 --outp
 ## 环境准备与依赖说明
 - Python 3.10
 - pandas + openpyxl（Excel 读取/写入）
-- matplotlib（图表生成，默认 Agg 后端）
-- python-pptx（PPT 输出）
 - SQLite（内置，无需额外安装）
 
 ### 常见依赖坑
 - **openpyxl**：建议使用最新版本，避免旧版本读写失败
-- **matplotlib**：在极简 Linux 环境可能缺少字体；Docker 已内置 `libfreetype6` 和 `libpng`
-- **PPT 输出**：需要 `python-pptx`，已加入依赖
 
 ---
 
 ## 工程结构
 ```
 app/
-  api/                 FastAPI 路由（query/rank/drilldown）
-  analytics/           指标计算、评分、排名、下钻
+  analytics/           指标计算、评分、排名
   core/                错误码/响应/日志
   ingest/              Excel 读取与科目层级解析
-  reporting/           图表、Excel/PPT 报告
   risk/                风险规则配置
   storage/             SQLite 数据访问
   cli.py               统一 CLI
@@ -201,57 +192,14 @@ python -m app.cli query --db-path data/output/finance.db --company 星河科技 
 python -m app.cli rank --db-path data/output/finance.db --indicator net_profit_margin --year 2023 --n 5 --json
 ```
 
-### 5) drilldown
+### 5) export
 ```bash
-python -m app.cli drilldown --db-path data/output/finance.db --company 星河科技 --year 2023 \
-  --statement-type balance_sheet --subject-prefix 资产>流动资产 --json
+python -m app.cli export --db-path data/output/finance.db --year 2023 --output-dir data/output --json
 ```
-
-### 6) export_excel
-```bash
-python -m app.cli export_excel --db-path data/output/finance.db --year 2023 --output-path data/output/report.xlsx --json
-```
-
-### 7) export_ppt
-```bash
-python -m app.cli export_ppt --db-path data/output/finance.db --year 2023 --output-path data/output/report.pptx --json
-```
-
----
-
-## API 使用说明
-保留 FastAPI 以供二次开发，当前提供：
-- `/health`
-- `/query`
-- `/rank`
-- `/drilldown`
-
-### 启动
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-### 示例
-```bash
-curl -s -X POST http://127.0.0.1:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"company": "星河科技", "year": 2023, "indicator": "net_profit_margin"}'
-```
-
----
-
-## 报告说明（Excel/PPT）
-### Excel
-- Sheet1 指标表：含风险等级标色（低=绿，中=橙，高=红）
-- Sheet2 排名表：指标 TopN 排名
-- 可选 Sheet3：明细下钻
-
-### PPT
-- 每公司至少 2 页
-  - 页1：公司概览 + 总体风险分数 + 关键指标表
-  - 页2：趋势图（净利润率/流动比率/ROE） + 排名摘要
-- 图表先保存 PNG，再插入 PPT
-- 模板文件：`app/reporting/templates/report_template.pptx`（若不存在会在导出时自动生成）
+导出结果：
+- `metrics.csv`：全量指标与风险评分
+- `ranking.csv`：指定指标 TopN 排名
+- `overall_risk.csv`：总体风险评分
 
 ---
 
@@ -265,7 +213,7 @@ bash scripts/verify.sh
 - ruff + pytest
 - 生成 demo 数据
 - 完整 pipeline：ingest/calc/rank/export
-- 校验 Excel/PPT 产物与页数
+- 校验 CSV 产物
 
 ### Docker 自检
 ```bash
@@ -280,22 +228,22 @@ bash scripts/docker_verify.sh
    - A：科目列格式不兼容，建议使用多列科目形式（subject_l1/subject_l2/subject_l3）。
 2. **Q：提示 missing_required_subject？**
    - A：缺少净利润/营业收入/流动资产/流动负债/所有者权益等科目。
-3. **Q：报告里显示 NaN？**
+3. **Q：指标里显示 NaN？**
    - A：分母为 0 或缺失数据，默认策略为警告。
 4. **Q：怎么调整风险阈值？**
    - A：修改 `app/risk/rules.py`。
-5. **Q：PPT 生成失败？**
-   - A：检查 python-pptx 是否安装，或模板文件是否存在。
-6. **Q：matplotlib 报错字体缺失？**
-   - A：安装系统字体或在 Docker 使用内置依赖。
+5. **Q：导出 CSV 为空？**
+   - A：确认已执行 calc，且 export 的 indicator/year 有数据。
+6. **Q：overall_risk.csv 全是 NaN？**
+   - A：说明所有指标缺失或权重为 0，可检查 `indicator_weights` 配置。
 7. **Q：Excel 无法读取？**
    - A：确保为 xlsx 格式，并存在三个 sheet。
 8. **Q：如何新增指标？**
    - A：参见开发扩展指南。
 9. **Q：为什么排名结果为空？**
    - A：未执行 calc 或指标名称不匹配。
-10. **Q：怎么导出下钻明细？**
-   - A：使用 `export_excel` 时传入 company/statement_type/subject_prefix。
+10. **Q：怎么导出不同指标排名？**
+   - A：在 `export` 命令中传入 `--indicator` 与 `--year`。
 11. **Q：CLI 失败没有 JSON？**
    - A：加 `--json` 参数输出结构化错误。
 12. **Q：Docker verify 输出失败？**
@@ -318,4 +266,4 @@ bash scripts/docker_verify.sh
 
 ---
 
-如需 Streamlit/Dash UI，可直接调用 CLI 或 API 的 query/rank/drilldown 结果作为数据源。
+如需 Streamlit/Dash UI，可直接读取 CSV 导出的 metrics/ranking/overall 数据作为数据源。

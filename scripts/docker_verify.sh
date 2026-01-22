@@ -14,14 +14,14 @@ sudo docker run --rm \
   /bin/bash -c "python scripts/generate_demo_data.py \
   && python -m app.cli ingest --input-dir data/input --db-path data/output/finance.db --reset --json \
   && python -m app.cli calc --db-path data/output/finance.db --json \
-  && python -m app.cli export_excel --db-path data/output/finance.db --year 2023 --output-path data/output/report.xlsx --json \
-  && python -m app.cli export_ppt --db-path data/output/finance.db --year 2023 --output-path data/output/report.pptx --json"
+  && python -m app.cli export --db-path data/output/finance.db --year 2023 --output-dir data/output --json"
 
 sudo docker image rm "$IMAGE_NAME"
 
 python - <<'PY'
 from pathlib import Path
-assert Path("data/output/report.xlsx").exists()
-assert Path("data/output/report.pptx").exists()
+assert Path("data/output/metrics.csv").exists()
+assert Path("data/output/ranking.csv").exists()
+assert Path("data/output/overall_risk.csv").exists()
 print("✅ docker verify ok")
 PY

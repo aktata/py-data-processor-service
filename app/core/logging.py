@@ -2,12 +2,8 @@ from __future__ import annotations
 
 import logging
 import sys
-import time
 import uuid
-from collections.abc import Callable
 from contextvars import ContextVar
-
-from fastapi import Request, Response
 
 trace_id_var: ContextVar[str] = ContextVar("trace_id", default="-")
 
@@ -44,14 +40,3 @@ def get_trace_id() -> str:
 
 def set_trace_id(trace_id: str) -> None:
     trace_id_var.set(trace_id)
-
-
-async def trace_id_middleware(request: Request, call_next: Callable) -> Response:
-    trace_id = request.headers.get("X-Trace-Id") or generate_trace_id()
-    set_trace_id(trace_id)
-    start = time.perf_counter()
-    response = await call_next(request)
-    duration_ms = int((time.perf_counter() - start) * 1000)
-    response.headers["X-Trace-Id"] = trace_id
-    response.headers["X-Process-Time-Ms"] = str(duration_ms)
-    return response

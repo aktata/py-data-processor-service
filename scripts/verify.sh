@@ -20,24 +20,16 @@ python scripts/generate_demo_data.py
 python -m app.cli ingest --input-dir data/input --db-path data/output/finance.db --reset --json
 python -m app.cli calc --db-path data/output/finance.db --json
 python -m app.cli rank --db-path data/output/finance.db --indicator net_profit_margin --year 2023 --n 3 --json
-python -m app.cli export_excel --db-path data/output/finance.db --year 2023 --output-path data/output/report.xlsx --json
-python -m app.cli export_ppt --db-path data/output/finance.db --year 2023 --output-path data/output/report.pptx --json
+python -m app.cli export --db-path data/output/finance.db --year 2023 --output-dir data/output --json
 
 python - <<'PY'
 from pathlib import Path
-from pptx import Presentation
-from openpyxl import load_workbook
 
-excel_path = Path("data/output/report.xlsx")
-ppt_path = Path("data/output/report.pptx")
-assert excel_path.exists(), "Excel report missing"
-assert ppt_path.exists(), "PPT report missing"
-
-workbook = load_workbook(excel_path)
-assert "指标表" in workbook.sheetnames
-assert "排名表" in workbook.sheetnames
-
-presentation = Presentation(ppt_path)
-assert len(presentation.slides) >= 6
+metrics_path = Path("data/output/metrics.csv")
+ranking_path = Path("data/output/ranking.csv")
+overall_path = Path("data/output/overall_risk.csv")
+assert metrics_path.exists(), "metrics.csv missing"
+assert ranking_path.exists(), "ranking.csv missing"
+assert overall_path.exists(), "overall_risk.csv missing"
 print("✅ verify pipeline ok")
 PY

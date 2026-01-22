@@ -4,14 +4,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AppSettings(BaseSettings):
-    app_name: str = "financial-risk-analysis-service"
-    app_env: str = "local"
-    app_version: str = "1.0.0"
-    log_level: str = "INFO"
-
-    host: str = "0.0.0.0"
-    port: int = 8000
-
     input_dir: str = "data/input"
     output_dir: str = "data/output"
     db_path: str = "data/output/finance.db"
